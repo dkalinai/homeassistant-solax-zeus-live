@@ -9,3 +9,6 @@ build/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+
+# Debug scripts
+debug_*.py
