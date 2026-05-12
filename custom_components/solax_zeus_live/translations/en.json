@@ -1,0 +1,24 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "SolaX Zeus Live",
+                "description": "Connect to SolaX Cloud for 10-second real-time inverter data.\n\nYour inverter and gateway serials will be detected automatically.",
+                "data": {
+                    "solax_username": "SolaX Cloud Email",
+                    "solax_password": "SolaX Cloud Password",
+                    "ws_host": "API Host (advanced)"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to SolaX Cloud WebSocket",
+            "invalid_auth": "Invalid SolaX Cloud credentials",
+            "no_devices": "No inverters found on your SolaX Cloud account",
+            "unknown": "Unknown error occurred"
+        },
+        "abort": {
+            "already_configured": "This inverter is already configured"
+        }
+    }
+}
