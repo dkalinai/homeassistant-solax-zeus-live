@@ -119,7 +119,7 @@ class SolaxZeusLiveSensor(SensorEntity):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._inverter_sn)},
-            name=f"SolaX Inverter {self._inverter_sn}",
+            name="SolaX Inverter",
             manufacturer="SolaX Power",
             model=self._inverter_type,
             sw_version="Zeus Live WS",

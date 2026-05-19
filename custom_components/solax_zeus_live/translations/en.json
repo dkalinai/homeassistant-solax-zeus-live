@@ -7,8 +7,11 @@
                 "data": {
                     "solax_username": "SolaX Cloud Email",
                     "solax_password": "SolaX Cloud Password",
-                    "entity_prefix": "Entity Prefix (optional, e.g. SOLAX)",
+                    "entity_prefix": "Entity prefix (optional)",
                     "ws_host": "API Host (advanced)"
+                },
+                "data_description": {
+                    "entity_prefix": "e.g. SolaX — prepended to all sensor names"
                 }
             }
         },
