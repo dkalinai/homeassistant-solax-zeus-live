@@ -20,7 +20,6 @@ from .const import (
     CONF_INVERTER_TYPE,
     CONF_ENTITY_PREFIX,
     SENSOR_DEFS,
-    PRIMARY_SENSORS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -66,7 +65,6 @@ async def async_setup_entry(
                 icon_str=icon,
                 inverter_sn=inverter_sn,
                 inverter_type=inverter_type,
-                enabled_default=code in PRIMARY_SENSORS,
             )
         )
 
@@ -100,7 +98,6 @@ class SolaxZeusLiveSensor(SensorEntity):
         icon_str: str | None,
         inverter_sn: str,
         inverter_type: str,
-        enabled_default: bool = True,
     ) -> None:
         self._ws_client = ws_client
         self._code = code
@@ -111,7 +108,6 @@ class SolaxZeusLiveSensor(SensorEntity):
         if icon_str:
             self._attr_icon = icon_str
         self._attr_unique_id = f"solax_zeus_{inverter_sn}_{code}"
-        self._attr_entity_registry_enabled_default = enabled_default
         self._inverter_sn = inverter_sn
         self._inverter_type = inverter_type
 

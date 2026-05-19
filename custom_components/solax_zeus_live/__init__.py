@@ -26,8 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up SolaX Zeus Live from a config entry."""
-    ws_client = SolaxZeusWebSocket(
-        inverter_sn=entry.data[CONF_INVERTER_SN],
+    ws_client = SolaxZeusWebSocket(        inverter_sn=entry.data[CONF_INVERTER_SN],
         wifi_sn=entry.data[CONF_WIFI_SN],
         ws_host=entry.data.get(CONF_WS_HOST, DEFAULT_WS_HOST),
         jwt_token=entry.data.get(CONF_JWT_TOKEN),

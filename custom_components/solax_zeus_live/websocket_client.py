@@ -18,9 +18,8 @@ _LOGGER = logging.getLogger(__name__)
 PING_INTERVAL = 5
 RECONNECT_DELAY = 10
 MAX_RECONNECT_DELAY = 300
-TOKEN_REFRESH_BUFFER = 3600  # refresh token 1 hour before expiry
-DATA_STALE_TIMEOUT = 60  # force reconnect if no PUSH_DATA for this many seconds
-LIVE_ENABLE_INTERVAL = 120  # re-call liveDataEnable every 2 minutes
+DATA_STALE_TIMEOUT = 60
+LIVE_ENABLE_INTERVAL = 120
 
 
 class SolaxZeusWebSocket:
@@ -52,7 +51,6 @@ class SolaxZeusWebSocket:
         self._last_data: dict[str, Any] = {}
         self._reconnect_delay = RECONNECT_DELAY
         self._connected = False
-        self._token_acquired_at: float = time.time() if jwt_token else 0
         self._last_push_data_at: float = 0
 
     @property
@@ -112,7 +110,6 @@ class SolaxZeusWebSocket:
             result = data["result"]
             self._jwt_token = result["tokenId"]
             self._user_id = result["userId"]
-            self._token_acquired_at = time.time()
             _LOGGER.info("SolaX login successful, new token acquired")
             return True
 
@@ -123,21 +120,17 @@ class SolaxZeusWebSocket:
     async def _ensure_token(self) -> bool:
         """Ensure we have a valid token, refreshing via login if needed."""
         if self._solax_username and self._solax_password:
-            # Always login to get a fresh token before connecting
             return await self._login()
-        # Fall back to stored JWT
         return bool(self._jwt_token and self._user_id)
 
     async def _enable_live_data(self) -> bool:
-        """Call liveDataEnable to tell SolaX Cloud to stream real-time data from the XHub."""
+        """Call liveDataEnable to keep the real-time stream active."""
         if not self._jwt_token:
             return False
 
-        # Auto-fetch site_id if not configured
         if not self._site_id:
             await self._fetch_site_id()
             if not self._site_id:
-                _LOGGER.debug("No site_id available, skipping liveDataEnable")
                 return False
 
         url = LIVE_DATA_ENABLE_URL.format(host=self._ws_host)
@@ -218,25 +211,17 @@ class SolaxZeusWebSocket:
         result = msg.get("result", {})
         data: dict[str, Any] = {}
 
-        # Parse inverter array
         for item in result.get("inverter", []):
             code = item.get("code")
             value = item.get("value")
             if code and value is not None:
                 data[code] = value
 
-        # Parse battery array
         for item in result.get("battery", []):
             code = item.get("code")
             value = item.get("value")
             if code and value is not None:
                 data[code] = value
-
-        # Add metadata
-        if "time" in msg:
-            data["_time"] = msg["time"]
-        if "inverterSn" in msg:
-            data["_inverterSn"] = msg["inverterSn"]
 
         return data
 
@@ -276,7 +261,6 @@ class SolaxZeusWebSocket:
 
         while self._running:
             try:
-                # Refresh token before each connection attempt
                 if not await self._ensure_token():
                     _LOGGER.error("Cannot obtain SolaX token, retrying in %ds", self._reconnect_delay)
                     await asyncio.sleep(self._reconnect_delay)
@@ -286,7 +270,6 @@ class SolaxZeusWebSocket:
                 url = self._build_url()
                 _LOGGER.info("Connecting to SolaX Zeus WebSocket at %s", self._ws_host)
 
-                # Enable live data stream before connecting WebSocket
                 await self._enable_live_data()
 
                 async with websockets.connect(
@@ -301,17 +284,16 @@ class SolaxZeusWebSocket:
                     self._reconnect_delay = RECONNECT_DELAY
                     _LOGGER.info("Connected to SolaX Zeus WebSocket")
 
-                    # Send start message to subscribe to live data
                     await ws.send(self._build_start_message())
                     _LOGGER.info("Sent start message, waiting for data...")
 
-                    # Reset push data timestamp for this connection
                     self._last_push_data_at = time.time()
 
-                    # Start ping, watchdog, and live-enable loops
-                    ping_task = asyncio.create_task(self._ping_loop())
-                    watchdog_task = asyncio.create_task(self._watchdog_loop())
-                    enable_task = asyncio.create_task(self._live_enable_loop())
+                    bg_tasks = [
+                        asyncio.create_task(self._ping_loop()),
+                        asyncio.create_task(self._watchdog_loop()),
+                        asyncio.create_task(self._live_enable_loop()),
+                    ]
 
                     try:
                         async for raw_msg in ws:
@@ -321,21 +303,16 @@ class SolaxZeusWebSocket:
                             try:
                                 msg = json.loads(raw_msg)
                             except json.JSONDecodeError:
-                                _LOGGER.debug("Non-JSON message: %s", raw_msg[:100])
                                 continue
 
-                            # Skip PONG responses
                             if msg.get("type") == "COMMAND":
                                 continue
 
-                            # Process PUSH_DATA
                             if msg.get("type") == "PUSH_DATA":
                                 self._last_push_data_at = time.time()
                                 data = self._parse_push_data(msg)
                                 if data:
-                                    # Calculate consumption power
-                                    # batP: positive = charging, negative = discharging
-                                    # siteP: positive = export, negative = import
+                                    # consumePower = PV - Battery(charging+) - Grid(export+)
                                     pv = data.get("pvP", 0) or 0
                                     bat = data.get("batP", 0) or 0
                                     grid = data.get("siteP", 0) or 0
@@ -346,29 +323,15 @@ class SolaxZeusWebSocket:
                                         "Live data: siteP=%s acP=%s batP=%s",
                                         data.get("siteP"), data.get("acP"), data.get("batP")
                                     )
-                                    for callback in self._callbacks:
+                                    for cb in self._callbacks:
                                         try:
-                                            callback(data)
+                                            cb(data)
                                         except Exception as err:
-                                            _LOGGER.error(
-                                                "Callback error: %s", err
-                                            )
+                                            _LOGGER.error("Callback error: %s", err)
                     finally:
-                        ping_task.cancel()
-                        watchdog_task.cancel()
-                        enable_task.cancel()
-                        try:
-                            await ping_task
-                        except asyncio.CancelledError:
-                            pass
-                        try:
-                            await watchdog_task
-                        except asyncio.CancelledError:
-                            pass
-                        try:
-                            await enable_task
-                        except asyncio.CancelledError:
-                            pass
+                        for t in bg_tasks:
+                            t.cancel()
+                        await asyncio.gather(*bg_tasks, return_exceptions=True)
 
             except asyncio.CancelledError:
                 break
