@@ -58,7 +58,7 @@ All 48 sensors are **enabled by default** and grouped by category:
 | Battery Power | `batP` | W | Positive = discharging, negative = charging |
 | Battery SOC | `soc` | % | State of charge |
 | Inverter AC Power | `acP` | W | Inverter output power |
-| Consumption Power | `consumePower` | W | Calculated house consumption |
+| Consumption Power | `consumePower` | W | Calculated: PV + Battery − Grid |
 
 ### MPPT / DC Power
 
