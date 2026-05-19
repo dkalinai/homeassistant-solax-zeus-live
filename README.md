@@ -18,8 +18,8 @@ Works with any SolaX inverter connected to SolaX Cloud (including via XHub gatew
 - 🔐 **Auto-login** — just enter your SolaX Cloud email & password
 - 🔍 **Auto-detection** — inverter serial, gateway serial, site ID all discovered automatically
 - 🔄 **Self-healing** — auto-reconnect with exponential backoff, stale data watchdog
-- 📊 **27 sensors** — grid power, PV, battery, voltages, currents, frequencies, MPPT strings
-- 🏠 **House consumption** — calculated template sensor included
+- 📊 **48 sensors** — grid power, PV, battery, voltages, currents, frequencies, MPPT strings, EPS, power quality, and more
+- 🏠 **House consumption** — calculated consumption sensor included
 
 ## Installation
 
@@ -47,40 +47,70 @@ That's it! Your inverter, gateway, and site are discovered from your SolaX Cloud
 
 ## Sensors
 
-### Primary (enabled by default)
+All 48 sensors are **enabled by default** and grouped by category:
+
+### Primary Power Flows
 
 | Sensor | Code | Unit | Description |
 |--------|------|------|-------------|
-| Grid Power | `siteP` | W | Power flow at the grid meter. Positive = exporting, negative = importing |
-| Inverter AC Power | `acP` | W | Inverter output power |
+| Grid Power | `siteP` | W | Power at the grid meter. Positive = exporting, negative = importing |
 | PV Power | `pvP` | W | Total solar production |
 | Battery Power | `batP` | W | Positive = discharging, negative = charging |
 | Battery SOC | `soc` | % | State of charge |
+| Inverter AC Power | `acP` | W | Inverter output power |
+| Consumption Power | `consumePower` | W | Calculated house consumption |
 
-### Additional (disabled by default)
+### MPPT / DC Power
 
-Grid/AC voltages (L1/L2/L3), currents, frequency, reactive power, apparent power, EPS power, and individual MPPT string power (up to 4 strings).
+| Sensor | Code | Unit | Description |
+|--------|------|------|-------------|
+| MPPT1–4 Power | `powerdc1`–`powerdc4` | W | Individual string power |
 
-## House Consumption Template
+### Grid Voltage & Current (L1/L2/L3)
 
-Add this to your `templates.yaml` for a calculated house consumption sensor:
+| Sensor | Code | Unit |
+|--------|------|------|
+| Grid Voltage L1–L3 | `siteUa`/`siteUb`/`siteUc` | V |
+| Grid Current L1–L3 | `siteIa`/`siteIb`/`siteIc` | A |
 
-```yaml
-- sensor:
-    - name: "Zeus House Consumption"
-      unique_id: zeus_house_consumption
-      unit_of_measurement: "W"
-      device_class: power
-      state_class: measurement
-      icon: mdi:home-lightning-bolt
-      state: >
-        {% set pv = states('sensor.solax_inverter_YOURSN_pv_power') | float(0) %}
-        {% set bat = states('sensor.solax_inverter_YOURSN_battery_power') | float(0) %}
-        {% set grid = states('sensor.solax_inverter_YOURSN_grid_power') | float(0) %}
-        {{ (pv + bat - grid) | round(0) }}
-```
+### AC Voltage, Current & Frequency (L1/L2/L3)
 
-Replace `YOURSN` with your inverter serial number.
+| Sensor | Code | Unit |
+|--------|------|------|
+| AC Voltage L1–L3 | `acUa`/`acUb`/`acUc` | V |
+| AC Current L1–L3 | `acIa`/`acIb`/`acIc` | A |
+| AC Frequency L1–L3 | `acFa`/`acFb`/`acFc` | Hz |
+
+### Power Quality
+
+| Sensor | Code | Unit |
+|--------|------|------|
+| Power Factor | `PF` | — |
+| AC Apparent Power | `acS` | VA |
+| AC Reactive Power (total + L1/L2/L3) | `acQ`/`acQa`/`acQb`/`acQc` | var |
+
+### Grid Reactive & Apparent Power
+
+| Sensor | Code | Unit |
+|--------|------|------|
+| Grid Reactive Power (total + L1/L2/L3) | `siteQ`/`siteQa`/`siteQb`/`siteQc` | var |
+| Grid Apparent Power | `siteS` | VA |
+
+### EPS (Backup Power)
+
+| Sensor | Code | Unit |
+|--------|------|------|
+| EPS Power | `epsP` | VA |
+| EPS Voltage L1–L3 | `epsUa`/`epsUb`/`epsUc` | V |
+| EPS Current L1–L3 | `epsIa`/`epsIb`/`epsIc` | A |
+| EPS Frequency L1–L3 | `epsFa`/`epsFb`/`epsFc` | Hz |
+
+### Other
+
+| Sensor | Code | Unit | Description |
+|--------|------|------|-------------|
+| Meter 2 Power | `m2P` | W | Second meter (if installed) |
+| Zeus WS Connection | — | — | WebSocket connection status |
 
 ## How It Works
 

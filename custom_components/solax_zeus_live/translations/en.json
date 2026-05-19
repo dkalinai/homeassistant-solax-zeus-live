@@ -7,6 +7,7 @@
                 "data": {
                     "solax_username": "SolaX Cloud Email",
                     "solax_password": "SolaX Cloud Password",
+                    "entity_prefix": "Entity Prefix (optional, e.g. SOLAX)",
                     "ws_host": "API Host (advanced)"
                 }
             }

@@ -18,6 +18,7 @@ from .const import (
     DOMAIN,
     CONF_INVERTER_SN,
     CONF_INVERTER_TYPE,
+    CONF_ENTITY_PREFIX,
     SENSOR_DEFS,
     PRIMARY_SENSORS,
 )
@@ -32,6 +33,7 @@ DEVICE_CLASS_MAP = {
     "battery": SensorDeviceClass.BATTERY,
     "apparent_power": SensorDeviceClass.APPARENT_POWER,
     "reactive_power": SensorDeviceClass.REACTIVE_POWER,
+    "power_factor": SensorDeviceClass.POWER_FACTOR,
 }
 
 STATE_CLASS_MAP = {
@@ -48,14 +50,16 @@ async def async_setup_entry(
     ws_client = hass.data[DOMAIN][entry.entry_id]
     inverter_sn = entry.data[CONF_INVERTER_SN]
     inverter_type = entry.data.get(CONF_INVERTER_TYPE, "SolaX Inverter")
+    prefix = entry.data.get(CONF_ENTITY_PREFIX, "").strip()
 
     entities = []
     for code, (name, unit, dev_class, state_class, icon) in SENSOR_DEFS.items():
+        display_name = f"{prefix} {name}" if prefix else name
         entities.append(
             SolaxZeusLiveSensor(
                 ws_client=ws_client,
                 code=code,
-                name=name,
+                name=display_name,
                 unit=unit,
                 device_class_str=dev_class,
                 state_class_str=state_class,
@@ -67,10 +71,12 @@ async def async_setup_entry(
         )
 
     # Connection status sensor
+    conn_name = f"{prefix} Zeus WS Connection" if prefix else "Zeus WS Connection"
     entities.append(
         SolaxZeusConnectionSensor(
             ws_client=ws_client,
             inverter_sn=inverter_sn,
+            name=conn_name,
         )
     )
 
@@ -146,11 +152,11 @@ class SolaxZeusConnectionSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = True
-    _attr_name = "Zeus WS Connection"
     _attr_icon = "mdi:websocket"
 
-    def __init__(self, ws_client, inverter_sn: str) -> None:
+    def __init__(self, ws_client, inverter_sn: str, name: str = "Zeus WS Connection") -> None:
         self._ws_client = ws_client
+        self._attr_name = name
         self._attr_unique_id = f"solax_zeus_{inverter_sn}_connection"
         self._inverter_sn = inverter_sn
 

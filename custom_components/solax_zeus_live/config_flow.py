@@ -23,6 +23,7 @@ from .const import (
     CONF_SOLAX_PASSWORD,
     CONF_SITE_ID,
     CONF_INVERTER_TYPE,
+    CONF_ENTITY_PREFIX,
     DEFAULT_WS_HOST,
     LOGIN_URL,
     LIVE_DATA_ENABLE_URL,
@@ -172,6 +173,7 @@ class SolaxZeusLiveConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_INVERTER_SN: info["inverter_sn"],
                         CONF_WIFI_SN: info["wifi_sn"],
                         CONF_INVERTER_TYPE: info["inverter_type"],
+                        CONF_ENTITY_PREFIX: user_input.get(CONF_ENTITY_PREFIX, "").strip(),
                     }
 
                     await self.async_set_unique_id(info["inverter_sn"])
@@ -186,6 +188,7 @@ class SolaxZeusLiveConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_SOLAX_USERNAME): str,
                     vol.Required(CONF_SOLAX_PASSWORD): str,
+                    vol.Optional(CONF_ENTITY_PREFIX, default=""): str,
                     vol.Optional(CONF_WS_HOST, default=DEFAULT_WS_HOST): str,
                 }
             ),
