@@ -333,6 +333,12 @@ class SolaxZeusWebSocket:
                                 self._last_push_data_at = time.time()
                                 data = self._parse_push_data(msg)
                                 if data:
+                                    # Calculate consumption power
+                                    pv = data.get("pvP", 0) or 0
+                                    bat = data.get("batP", 0) or 0
+                                    grid = data.get("siteP", 0) or 0
+                                    data["consumePower"] = round(pv + bat - grid)
+
                                     self._last_data = data
                                     _LOGGER.debug(
                                         "Live data: siteP=%s acP=%s batP=%s",
